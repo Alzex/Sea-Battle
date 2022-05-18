@@ -24,4 +24,15 @@ const generateGameField = (width, height) => {
     gameField.appendChild(row);
   }
   document.body.appendChild(gameField);
+  return gameField;
+}
+
+class Game {
+  constructor() {
+    
+  }
+}
+
+class Ship {
+  constructor(size)
 }
