@@ -34,5 +34,7 @@ class Game {
 }
 
 class Ship {
-  constructor(size)
+  constructor(size) {
+    
+  }
 }
