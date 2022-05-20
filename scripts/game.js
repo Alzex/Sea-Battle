@@ -1,3 +1,5 @@
+'use strict';
+
 const startButton = document.getElementById('start-btn');
 
 const fill2DArray = (collumns, rows, value) =>
@@ -38,7 +40,6 @@ class Game {
 }
 
 class Field {
-
   constructor(game, cssClass, width = 9, height = 9) {
     this.width = width;
     this.cssClass = cssClass;
