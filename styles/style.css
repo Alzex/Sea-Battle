@@ -41,6 +41,7 @@ button:hover {
 
 #gameFields {
   position: absolute;
+  margin-left: 30px;
 }
 
 .player1Field {
@@ -48,4 +49,5 @@ button:hover {
 }
 .player2Field {
   display: inline-block;
+  margin-left: 35px;
 }
