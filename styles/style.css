@@ -1,9 +1,15 @@
+@font-face {
+  font-family: 'Work Sans';
+  src: url('../fonts/WorkSans-VariableFont_wght.ttf') format('truetype');
+};
+
 .title {
   color: #fff;
 }
 
 body {
   background-color: #3993ed;
+  font-family: 'Work Sans';
 }
 table tr td {
   border: 2px solid rgb(255, 255, 255);
@@ -57,11 +63,15 @@ button:hover {
   margin-left: 35px;
 }
 
-#ship-menu {
+.ship-menu {
   border: 5px #fff solid;
   position: absolute;
   padding: 10px;
   display: inline-block;
+}
+
+.ship-menu.enemy {
+  margin-left: 710px;
 }
 
 .menu-item {
@@ -78,6 +88,25 @@ button:hover {
   color: #3993ed;
 }
 
-.menu-item:hover:not(.chosen) {
+.menu-item.disabled {
+  background-color: rgba(147, 141, 144, 0.4);
+  color: #665151;
+  border-color: #665151;
+  cursor: not-allowed;
+}
+
+.menu-item:hover:not(.chosen):not(.disabled) {
   background-color: hwb(0 31% 69% / 0.555);
+}
+
+.stats {
+  margin-left: 150px;
+  margin-top: 270px;
+  border: 2px #fff solid;
+  position: absolute;
+  padding: 5px;
+}
+
+.shp-rot {
+  color: #fff;
 }

@@ -3,7 +3,6 @@
 import CONFIG from './config.js';
 
 const startButton = document.getElementById('start-btn');
-const shipMenu = document.getElementById('ship-menu');
 
 const fill2DArray = (collumns, rows, value) =>
   Array.from({ length: collumns }, () =>
@@ -13,14 +12,15 @@ const fill2DArray = (collumns, rows, value) =>
 const cellState = {
   EMPTY: 0,
   SHIP: 1,
-  AIM_MISS: 3,
-  AIM_SHIP: 4,
+  AIM_MISS: 2,
+  AIM_SHIP: 3,
 };
 
 const gameState = {
-  POSITIONING: 0,
-  PLAYING: 1,
-  END: 2,
+  POSITIONING_PLAYER1: 0,
+  POSITIONING_PLAYER2: 1,
+  PLAYING: 2,
+  END: 3,
 };
 
 const parsePositionFromCell = (cell) => {
@@ -32,26 +32,37 @@ const parsePositionFromCell = (cell) => {
 class Game {
   constructor(document, config) {
     this.htmlDoc = document;
-    this.state = gameState.POSITIONING;
-    this.menu = new Menu(this, config);
-    this.player1Field = new Field(this, 'player1Field');
-    this.player2Field = new Field(this, 'player2Field');
+    this.state = gameState.POSITIONING_PLAYER1;
+    this.player1 = new Player(config, 'player1Field');
+    this.player2 = new Player(config, 'player2Field', false);
+    this.shipRotationText = document.getElementById('shp-rot');
   }
   start = () => {
-    this.player1Field.create();
-    this.player2Field.create();
-    this.menu.create();
+    document.body.addEventListener('keydown', (e) => {
+      if (e.code === 'KeyR') {
+        if (this.state === gameState.POSITIONING_PLAYER1) {
+          this.player1.field.rotateShip();
+        }
+      }
+    });
+    this.player1.init();
+    this.player2.init();
+  };
+
+  nextState = () => {
+    if (this.state !== gameState.END) this.state++;
   };
 }
 
 class Field {
-  constructor(game, cssClass, width = 9, height = 9) {
+  constructor(cssClass, player, width = 9, height = 9) {
     this.width = width;
     this.cssClass = cssClass;
     this.height = height;
-    this.game = game;
+    this.player = player;
     this.data = fill2DArray(width, height, cellState.EMPTY);
   }
+
   create = () => {
     const mainDiv = document.getElementById('gameFields');
     const container = document.createElement('div');
@@ -83,6 +94,7 @@ class Field {
       }
       table.appendChild(row);
     }
+
     this.gameTable = table;
     container.appendChild(table);
     mainDiv.appendChild(container);
@@ -107,35 +119,72 @@ class Field {
     }
   };
 
+  renderShip = (x, y, state) => {
+    const chosenId = this.player.menu.chosenId;
+    const ship = this.player.ships[chosenId];
+  
+    if (chosenId !== -1 && ship.canBePlaced(this, x, y)) {
+      if (ship.isHorizontal)
+        this.data[x].fill(state, y, y + ship.size);
+      else {
+        for (let i = x; i < x + ship.size; i++) {
+          this.data[i][y] = state;
+        }
+      }
+    }
+
+    this.update();
+  }
+
+  clearUnplacedCells = () => {
+    for (const row of this.data) {
+      for (const cell of row) {
+        if (cell === cellState.SHIP) {
+          //TODO!!!
+          /*const x = this.data.indexOf(row);
+          const y = row.indexOf(cell);
+          this.player.ship.find((sh) => (sh.position === {x: x, y: y}) && sh.isPlased);*/
+          this.data[this.data.indexOf(row)][row.indexOf(cell)] = cellState.EMPTY;
+        }
+      }
+    }
+    this.update();
+  }
+
+  rotateShip = () => {
+    const chosenId = this.player.menu.chosenId;
+    const ship = this.player.ships[chosenId];
+    console.log(chosenId, ship);
+    ship.isHorizontal = !ship.isHorizontal;
+
+    const rotationText = document.getElementById('shp-rot');
+    rotationText.innerText = ship.isHorizontal ? 'horizontal' : 'vertical';
+    this.clearUnplacedCells();
+  }
+
   processCellClick = (x, y) => {
-    console.table({ x, y });
+
   };
 
   processCellMouseEnter = (x, y) => {
-    this.data[x].fill(cellState.SHIP, y, y + 4);
-    this.update();
+    this.renderShip(x, y, cellState.SHIP);
   };
 
   processCellMouseLeave = (x, y) => {
-    this.data[x].fill(cellState.EMPTY, y, y + 4);
-    this.update();
+    this.renderShip(x, y, cellState.EMPTY);
   };
 }
 
 class Ship {
-  constructor(size) {
+  constructor(size, number) {
     this.size = size;
-    this.position = { x: 0, y: 0 };
+    this.number = number;
     this.isHorizontal = true;
   }
 
-  canBePlaced = (field, x, y) => {
-    if (y + this.size > field.width && this.isHorizontal) {
-      return false;
-    } else if (x + this.size > field.width && !this.isHorizontal) {
-      return false;
-    } else return true;
-  };
+  canBePlaced = (field, x, y) =>
+    (this.size + y <= field.width && this.isHorizontal) ||
+    (this.size + x <= field.height && !this.isHorizontal);
 
   place = (field, x, y) => {
     if (!this.canBePlaced) return;
@@ -146,34 +195,67 @@ class Ship {
       }
     }
   };
-
-  rotate = () => (this.isHorizontal = !this.isHorizontal);
 }
 
 class Menu {
-  constructor(game, config) {
-    this.config = config;
-    this.game = game;
-    this.container = game.htmlDoc.getElementById('ship-menu');
+  constructor(first = true) {
+    this.container = document.createElement('div');
+    this.container.className = first ? 'ship-menu' : 'ship-menu enemy';
+    this.chosenId = -1;
   }
 
-  create = () => {
-    for (const shipConfig of this.config.ships) {
+  create = (ships) => {
+    document.body.appendChild(this.container);
+    for (const ship of ships) {
       const menuItem = document.createElement('div');
       menuItem.className = 'menu-item';
-      menuItem.setAttribute('ship-size', shipConfig.size);
-      menuItem.innerText = `${shipConfig.size} (x${shipConfig.number})`;
+      menuItem.setAttribute('ship-size', ship.size);
+      menuItem.innerText = `${ship.size} (x${ship.number})`;
 
       menuItem.addEventListener('click', (e) => {
         const itemIndex = Array.from(this.container.children).indexOf(e.target);
-        if (typeof this.chosen !== 'undefined')
-          this.container.children[this.chosen].className = 'menu-item';
-        this.chosen = itemIndex;
+        if (itemIndex === this.chosenId) {
+          this.chosenId = -1;
+          e.target.className = 'menu-item';
+          return;
+        }
+        if (this.chosenId !== -1) {
+          this.container.children[this.chosenId].className = 'menu-item';
+        }
+        this.chosenId = itemIndex;
         e.target.className = 'menu-item chosen';
       });
 
       this.container.appendChild(menuItem);
     }
+  };
+
+  update = (ships) => {
+    for (const ship of ships) {
+      const menuItem = this.container.children[ships.indexOf(ship)];
+      if (ship.number === 0) {
+        menuItem.className = 'menu-item disabled';
+        menuItem.removeEventListener('click');
+      }
+      menuItem.innerText = `${ship.size} (${ship.number}x)`;
+    }
+  };
+}
+
+class Player {
+  constructor(config, fieldCssContainer, first = true) {
+    this.ships = [];
+    this.field = new Field(fieldCssContainer, this);
+    this.menu = new Menu(first);
+
+    for (const ship of config.ships) {
+      this.ships.push(new Ship(ship.size, ship.number));
+    }
+  }
+
+  init = () => {
+    this.field.create();
+    this.menu.create(this.ships);
   };
 }
 
@@ -181,6 +263,6 @@ const game = new Game(document, CONFIG);
 
 startButton.addEventListener('click', (e) => {
   game.start();
-  shipMenu.removeAttribute('style');
+  document.querySelector('.stats').removeAttribute('style');
   startButton.remove();
 });
