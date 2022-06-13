@@ -53,7 +53,10 @@ class Field {
     this.cssClass = cssClass;
     this.height = height;
     this.player = player;
-    this.data = fill2DArray(width, height, cellState.EMPTY);
+    this.data = fill2DArray(width, height, {
+      state: cellState.EMPTY,
+      isPlaced: false,
+    });
     this.rotationContainer = document.querySelector('.stats');
   }
 
@@ -99,8 +102,9 @@ class Field {
     for (const row of this.gameTable.rows) {
       for (const cell of row.cells) {
         const position = parsePositionFromCell(cell);
-        switch (this.data[position.x][position.y]) {
+        switch (this.data[position.x][position.y].state) {
           case cellState.SHIP:
+            console.log(position.x, position.y)
             cell.className = 'ship';
             break;
           default:
@@ -114,16 +118,20 @@ class Field {
   renderShip = (x, y, state) => {
     const chosenId = this.player.menu.chosenId;
     const ship = this.player.ships[chosenId];
-
-    if (chosenId !== -1 && ship.canBePlaced(this, x, y)) {
-      if (ship.isHorizontal) this.data[x].fill(state, y, y + ship.size);
-      else {
+    if (chosenId !== -1 && ((ship.canBePlaced(this, x, y) || (!this.data[x][y].isPlaced && state === cellState.EMPTY)))) {
+      if (ship.isHorizontal) {
+        this.data[x].fill(
+          { state: state, isPlaced: false },
+          y,
+          y + ship.size
+        );
+        } else {
         for (let i = x; i < x + ship.size; i++) {
-          this.data[i][y] = state;
+          this.data[i][y] = { state: state, isPlaced: false };
         }
       }
     }
-
+    console.log(this.data);
     this.update();
   };
 
@@ -142,11 +150,11 @@ class Field {
     const chosenId = this.player.menu.chosenId;
     const ship = this.player.ships[chosenId];
     console.log('rrr');
-    
+
     const cell = this.gameTable.rows[x].cells[y];
     cell.removeEventListener('mouseleave', this.processCellMouseLeave);
     cell.removeEventListener('mouseenter', this.processCellMouseEnter);
-    
+
     ship.place(this, x, y);
     this.player.menu.update(this.player.ships, this.player.game.state);
   };
@@ -167,14 +175,14 @@ class Field {
   processCellMouseLeave = (event) => {
     const position = parsePositionFromCell(event.target);
 
-    /*if (
+    if (
       (this.player.game.state === gameState.POSITIONING_PLAYER1 &&
         this.player.isFirst) ||
       (this.player.game.state === gameState.POSITIONING_PLAYER2 &&
         !this.player.isFirst)
-    ) {*/
-      this.renderShip(position.x, position.y, cellState.EMPTY);
-    //}
+    ) {
+    this.renderShip(position.x, position.y, cellState.EMPTY);
+    }
   };
 }
 
@@ -189,29 +197,35 @@ class Ship {
     const topX = x === 0 ? x : x - 1;
     const bottomX = !this.isHorizontal ? x + this.size + 1 : x + 1;
     const leftY = y === 0 ? y : y - 1;
-    const rightY = this.isHorizontal ? y + this.size + 1 : y + 1 ;
-    console.log(topX, bottomX, leftY, rightY);
-    for (let i = topX; i <= bottomX; i++) {
-      for (let j = leftY; j <= rightY; j++) {
-        if (field.data[i][j] === cellState.SHIP)
-          return false;
+    const rightY = this.isHorizontal ? y + this.size + 1 : y + 1;
+
+    for (let i = topX; i < bottomX; i++) {
+      for (let j = leftY; j < rightY; j++) {
+        if (field.data[i][j] === cellState.SHIP) return false;
       }
     }
 
     return true;
-  }
+  };
 
   canBePlaced = (field, x, y) =>
     ((this.size + y <= field.width && this.isHorizontal) ||
-    (this.size + x <= field.height && !this.isHorizontal)) &&
-    (field.data[x][y] !== cellState.SHIP) && this.notTooNearToOthers(field, x, y);
+      (this.size + x <= field.height && !this.isHorizontal)) &&
+    (field.data[x][y].state !== cellState.SHIP || !field.data[x][y].isPlaced) &&
+    this.notTooNearToOthers(field, x, y);
 
   place = (field, x, y) => {
     //if (!this.canBePlaced) return;
-    if (this.isHorizontal) field.data[x].fill(cellState.SHIP, y, y + this.size);
+    if (this.isHorizontal)
+      field.data[x].fill(
+        { state: cellState.SHIP, isPlaced: true },
+        y,
+        y + this.size
+      );
     else {
       for (let i = x; i < x + this.size; i++) {
-        data[i] = cellState.SHIP;
+        field.data[i][y].state = cellState.SHIP;
+        field.data[i][y].isPlaced = true;
       }
     }
     this.number--;
@@ -242,9 +256,12 @@ class Menu {
           e.target.className = 'menu-item';
           return;
         }
-        
+
         const prevCell = this.container.children[this.chosenId];
-        if (this.chosenId !== -1 && prevCell.className !== 'menu-item disabled') {
+        if (
+          this.chosenId !== -1 &&
+          prevCell.className !== 'menu-item disabled'
+        ) {
           prevCell.className = 'menu-item';
         }
         this.chosenId = itemIndex;
