@@ -103,13 +103,32 @@ button:hover {
   margin-left: 150px;
   margin-top: 270px;
   position: absolute;
-  padding: 5px;
+  padding: 10px;
 }
 
 .stats-item {
-  padding: 5px;
+  padding: 10px;
 }
 
 .stats-text {
   color: #fff;
 }
+
+#rotator .stats-text {
+  transition-duration: 0.4s;
+}
+
+#rotator:hover .stats-text {
+  background: #fff;
+  color: #3993ed;
+}
+
+#rotator {
+  transition-duration: 0.4s;
+}
+
+#rotator:hover {
+  background: #fff;
+  color: #3993ed;
+}
+
