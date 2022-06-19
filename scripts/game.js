@@ -152,8 +152,7 @@ class Field {
     const ship = this.player.ships[chosenId];
     if (
       chosenId !== -1 &&
-      (ship.canBePlaced(this, x, y) ||
-        (!this.data[x][y].isPlaced && state === cellState.EMPTY))
+      (ship.canBePlaced(this, x, y))
     ) {
       if (ship.isHorizontal) {
         for (let i = y; i < y + ship.size; i++) {
@@ -173,12 +172,13 @@ class Field {
   rotateShip = () => {
     const chosenId = this.player.menu.chosenId;
     const ship = this.player.ships[chosenId];
-    console.log(chosenId, ship);
+
+    if (!ship) return;
+
     ship.isHorizontal = !ship.isHorizontal;
 
     const rotationText = document.getElementById('shp-rot');
     rotationText.innerText = ship.isHorizontal ? 'horizontal' : 'vertical';
-    this.clearUnplacedCells();
   };
 
   processCellClick = (x, y) => {
