@@ -61,7 +61,7 @@ class Field {
       state: cellState.EMPTY,
       isPlaced: false,
     });
-    this.rotationContainer = document.querySelector('.stats');
+    this.rotationContainer = document.getElementById('rotator');
   }
 
   create = () => {
@@ -135,13 +135,13 @@ class Field {
     const ship = this.player.ships[chosenId];
     if (chosenId !== -1 && ((ship.canBePlaced(this, x, y) || (!this.data[x][y].isPlaced && state === cellState.EMPTY)))) {
       if (ship.isHorizontal) {
-        this.data[x].fill(
-          { state: state, isPlaced: false },
-          y,
-          y + ship.size
-        );
+        for (let i = y; i < y + ship.size; i++) {
+          if (this.data[x][i].isPlaced) return;
+          this.data[x][i] = { state: state, isPlaced: false };
+        }
         } else {
         for (let i = x; i < x + ship.size; i++) {
+          if (this.data[i][y].isPlaced) return;
           this.data[i][y] = { state: state, isPlaced: false };
         }
       }
@@ -218,9 +218,6 @@ class Ship {
     } else {
       borderX = x + this.size === field.height - 1 ? x + this.size + 1 : x + this.size;
     }
-
-    const endX = x + this.size;
-    const endY = y + this.size;
 
     const topX = x !== 0 ? x - 1 : 0;
     const topY = y !== 0 ? y - 1 : 0;
