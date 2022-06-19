@@ -236,8 +236,8 @@ class Field {
       }
       this.player.menu.update(this.player.ships, this.player.game.state);
     } else if (
-      gameStat === gameState.PLAYING_TURN1 ||
-      gameStat === gameState.PLAYING_TURN2
+      gameStat === gameState.PLAYING_TURN1 && !this.player.isFirst ||
+      gameStat === gameState.PLAYING_TURN2 && this.player.isFirst
     ) {
       if (this.data[x][y].state === cellState.SHIP) {
         this.data[x][y] = { state: cellState.AIM_SHIP, isPlaced: true };
