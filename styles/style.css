@@ -26,6 +26,13 @@ td {
   background-color: #fff;
 }
 
+.ship.aim {
+  background-color: black;
+}
+.aim {
+  background-color: gray;
+}
+
 td:hover:not(.ship) {
   background-color: hwb(0 31% 69% / 0.555);
 }

@@ -19,8 +19,9 @@ const cellState = {
 const gameState = {
   POSITIONING_PLAYER1: 0,
   POSITIONING_PLAYER2: 1,
-  PLAYING: 2,
-  END: 3,
+  PLAYING_TURN1: 2,
+  PLAYING_TURN2: 3,
+  END: 4,
 };
 
 const parsePositionFromCell = (cell) => {
@@ -36,6 +37,7 @@ class Game {
     this.player1 = new Player(this, config, 'player1Field');
     this.player2 = new Player(this, config, 'player2Field', false);
     this.shipRotationText = document.getElementById('shp-rot');
+    this.gameStateText = document.getElementById('game-state');
   }
   start = () => {
     this.player1.init();
@@ -46,7 +48,13 @@ class Game {
     if (this.state !== gameState.END) this.state++;
     if (this.state === gameState.POSITIONING_PLAYER2) {
       this.player1.field.hide();
-      this.player2.field.update();
+      this.player2.menu.update(this.player2.ships);
+      this.gameStateText.innerText = 'Positioning (Player 2)';
+    } else if (this.state === gameState.PLAYING_TURN1) {
+      this.player2.field.hide();
+      this.player1.field.update();
+      document.getElementById('rotator').remove();
+      this.gameStateText.innerText = 'Playing (1st player turn)';
     }
   };
 }
@@ -103,6 +111,15 @@ class Field {
   update = () => {
     if (!this.gameTable) throw new Error('Field has not created yet');
 
+    const playerMenu = this.player.menu;
+    const ship =
+      playerMenu.chosenId !== -1
+        ? this.player.ships[playerMenu.chosenId]
+        : undefined;
+    const rotationText = document.getElementById('shp-rot');
+    if (ship) {
+      rotationText.innerText = ship.isHorizontal ? 'horizontal' : 'vertical';
+    }
     for (const row of this.gameTable.rows) {
       for (const cell of row.cells) {
         const position = parsePositionFromCell(cell);
@@ -128,18 +145,22 @@ class Field {
         }
       }
     }
-  }
+  };
 
   renderShip = (x, y, state) => {
     const chosenId = this.player.menu.chosenId;
     const ship = this.player.ships[chosenId];
-    if (chosenId !== -1 && ((ship.canBePlaced(this, x, y) || (!this.data[x][y].isPlaced && state === cellState.EMPTY)))) {
+    if (
+      chosenId !== -1 &&
+      (ship.canBePlaced(this, x, y) ||
+        (!this.data[x][y].isPlaced && state === cellState.EMPTY))
+    ) {
       if (ship.isHorizontal) {
         for (let i = y; i < y + ship.size; i++) {
           if (this.data[x][i].isPlaced) return;
           this.data[x][i] = { state: state, isPlaced: false };
         }
-        } else {
+      } else {
         for (let i = x; i < x + ship.size; i++) {
           if (this.data[i][y].isPlaced) return;
           this.data[i][y] = { state: state, isPlaced: false };
@@ -161,18 +182,25 @@ class Field {
   };
 
   processCellClick = (x, y) => {
-    const chosenId = this.player.menu.chosenId;
-    const ship = this.player.ships[chosenId];
+    if (
+      (this.player.game.state === gameState.POSITIONING_PLAYER1 &&
+        this.player.isFirst) ||
+      (this.player.game.state === gameState.POSITIONING_PLAYER2 &&
+        !this.player.isFirst)
+    ) {
+      const chosenId = this.player.menu.chosenId;
+      const ship = this.player.ships[chosenId];
 
-    const cell = this.gameTable.rows[x].cells[y];
-    cell.removeEventListener('mouseleave', this.processCellMouseLeave);
-    cell.removeEventListener('mouseenter', this.processCellMouseEnter);
+      const cell = this.gameTable.rows[x].cells[y];
+      cell.removeEventListener('mouseleave', this.processCellMouseLeave);
+      cell.removeEventListener('mouseenter', this.processCellMouseEnter);
 
-    if (ship.canBePlaced(this, x, y)) {
-      ship.place(this, x, y);
-      this.player.tryNextState();
+      if (ship.canBePlaced(this, x, y)) {
+        ship.place(this, x, y);
+        this.player.tryNextState();
+      }
+      this.player.menu.update(this.player.ships, this.player.game.state);
     }
-    this.player.menu.update(this.player.ships, this.player.game.state);
   };
 
   processCellMouseEnter = (event) => {
@@ -197,7 +225,7 @@ class Field {
       (this.player.game.state === gameState.POSITIONING_PLAYER2 &&
         !this.player.isFirst)
     ) {
-    this.renderShip(position.x, position.y, cellState.EMPTY);
+      this.renderShip(position.x, position.y, cellState.EMPTY);
     }
   };
 }
@@ -214,17 +242,22 @@ class Ship {
     let borderY = y + 1;
 
     if (this.isHorizontal) {
-      borderY = y + this.size === field.width - 1 ? y + this.size + 1 : y + this.size;
+      borderY =
+        y + this.size === field.width - 1 ? y + this.size + 1 : y + this.size;
     } else {
-      borderX = x + this.size === field.height - 1 ? x + this.size + 1 : x + this.size;
+      borderX =
+        x + this.size === field.height - 1 ? x + this.size + 1 : x + this.size;
     }
 
     const topX = x !== 0 ? x - 1 : 0;
     const topY = y !== 0 ? y - 1 : 0;
-    
+
     for (let i = topX; i < borderX; i++) {
       for (let j = topY; j < borderY; j++) {
-        if (field.data[i][j].state === cellState.SHIP && field.data[i][j].isPlaced) {
+        if (
+          field.data[i][j].state === cellState.SHIP &&
+          field.data[i][j].isPlaced
+        ) {
           return false;
         }
       }
@@ -235,10 +268,9 @@ class Ship {
   canBePlaced = (field, x, y) =>
     ((this.size + y <= field.width && this.isHorizontal) ||
       (this.size + x <= field.height && !this.isHorizontal)) &&
-      this.notTooNearToOthers(field, x, y);
+    this.notTooNearToOthers(field, x, y);
 
   place = (field, x, y) => {
-    console.log(this);
     if (this.isHorizontal)
       field.data[x].fill(
         { state: cellState.SHIP, isPlaced: true },
@@ -295,13 +327,15 @@ class Menu {
     }
   };
 
-  update = (ships, gameState) => {
+  update = (ships) => {
     for (const ship of ships) {
       const index = ships.indexOf(ship);
       const menuItem = this.container.children[index];
       if (ship.number === 0 && index === this.chosenId) {
         menuItem.className = 'menu-item disabled';
         this.chosenId = -1;
+      } else if (ship.number !== 0 && index !== this.chosenId) {
+        menuItem.className = 'menu-item';
       }
       menuItem.innerText = `${ship.size} (x${ship.number})`;
     }
@@ -325,9 +359,10 @@ class Player {
     for (const ship of this.ships) {
       if (ship.number !== 0) return;
     }
+    console.log('OK');
 
     this.game.nextState();
-  }
+  };
 
   init = () => {
     this.field.create();
