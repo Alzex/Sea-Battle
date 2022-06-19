@@ -12,8 +12,14 @@
   <button id="start-btn">START</button>
   <div id="gameFields"></div>
   <div class="stats" style="visibility: hidden;">
-    <div class="shp-rot">Ship Rotation:</div>
-    <div class="shp-rot" id="shp-rot">horizontal</div>
+    <div class="stats-item" id="rotator">
+      <div class="stats-text"><b>Ship Rotation:</b></div>
+      <div class="stats-text" id="shp-rot">horizontal</div>
+    </div>
+    <div class="stats-item">
+      <div class="stats-text"><b>Game State:</b></div>
+      <div class="stats-text" id="game-state">Positioning (Player 1)</div>
+    </div>
   </div>
 </body>
 <script type="module" src="./scripts/game.js"></script>

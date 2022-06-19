@@ -102,12 +102,14 @@ button:hover {
 .stats {
   margin-left: 150px;
   margin-top: 270px;
-  border: 2px #fff solid;
   position: absolute;
   padding: 5px;
 }
 
-.shp-rot {
+.stats-item {
+  padding: 5px;
+}
+
+.stats-text {
   color: #fff;
-  cursor: pointer;
 }
