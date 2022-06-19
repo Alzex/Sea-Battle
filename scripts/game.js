@@ -39,13 +39,25 @@ class Game {
     this.shipRotationText = document.getElementById('shp-rot');
     this.gameStateText = document.getElementById('game-state');
   }
+
   start = () => {
     this.player1.init();
     this.player2.init();
   };
 
   nextState = () => {
-    if (this.state !== gameState.END) this.state++;
+    if (
+      this.state === gameState.POSITIONING_PLAYER1 ||
+      this.state === gameState.POSITIONING_PLAYER2
+    ) {
+      this.state++;
+    } else if (this.state !== gameState.END) {
+      this.state =
+        this.state === gameState.PLAYING_TURN1
+          ? gameState.PLAYING_TURN2
+          : gameState.PLAYING_TURN1;
+    }
+
     if (this.state === gameState.POSITIONING_PLAYER2) {
       this.player1.field.hide();
       this.player2.menu.update(this.player2.ships);
@@ -53,10 +65,22 @@ class Game {
     } else if (this.state === gameState.PLAYING_TURN1) {
       this.player2.field.hide();
       this.player1.field.update();
-      document.getElementById('rotator').remove();
+      document.getElementById('rotator')?.remove();
       this.gameStateText.innerText = 'Playing (1st player turn)';
+    } else if (this.state === gameState.PLAYING_TURN2) {
+      this.player1.field.hide();
+      this.player2.field.update();
+      this.gameStateText.innerText = 'Playing (2nd player turn)';
     }
   };
+
+  end = (isFirst) => {
+    this.state = gameState.END;
+    this.gameStateText.innerText = isFirst ? 'First player won!' : 'Second player won!';
+    this.gameStateText.innerText += '\nPress F5 to restart';
+    this.player1.field.update();
+    this.player2.field.update();
+  }
 }
 
 class Field {
@@ -127,6 +151,12 @@ class Field {
           case cellState.SHIP:
             cell.className = 'ship';
             break;
+          case cellState.AIM_MISS:
+            cell.className = 'aim';
+            break;
+          case cellState.AIM_SHIP:
+            cell.className = 'ship aim';
+            break;
           default:
             cell.removeAttribute('class');
             break;
@@ -150,10 +180,7 @@ class Field {
   renderShip = (x, y, state) => {
     const chosenId = this.player.menu.chosenId;
     const ship = this.player.ships[chosenId];
-    if (
-      chosenId !== -1 &&
-      (ship.canBePlaced(this, x, y))
-    ) {
+    if (chosenId !== -1 && ship.canBePlaced(this, x, y)) {
       if (ship.isHorizontal) {
         for (let i = y; i < y + ship.size; i++) {
           if (this.data[x][i].isPlaced) return;
@@ -181,12 +208,20 @@ class Field {
     rotationText.innerText = ship.isHorizontal ? 'horizontal' : 'vertical';
   };
 
+  checkIfLose = () => {
+    for (let i = 0; i < this.height; i++) {
+      for (let j = 0; j < this.width; j++) {
+        if (this.data[i][j].state === cellState.SHIP) return false;
+      }
+    }
+    return true;
+  }
+
   processCellClick = (x, y) => {
+    const gameStat = this.player.game.state;
     if (
-      (this.player.game.state === gameState.POSITIONING_PLAYER1 &&
-        this.player.isFirst) ||
-      (this.player.game.state === gameState.POSITIONING_PLAYER2 &&
-        !this.player.isFirst)
+      (gameStat === gameState.POSITIONING_PLAYER1 && this.player.isFirst) ||
+      (gameStat === gameState.POSITIONING_PLAYER2 && !this.player.isFirst)
     ) {
       const chosenId = this.player.menu.chosenId;
       const ship = this.player.ships[chosenId];
@@ -195,11 +230,30 @@ class Field {
       cell.removeEventListener('mouseleave', this.processCellMouseLeave);
       cell.removeEventListener('mouseenter', this.processCellMouseEnter);
 
-      if (ship.canBePlaced(this, x, y)) {
+      if (ship?.canBePlaced(this, x, y)) {
         ship.place(this, x, y);
         this.player.tryNextState();
       }
       this.player.menu.update(this.player.ships, this.player.game.state);
+    } else if (
+      gameStat === gameState.PLAYING_TURN1 ||
+      gameStat === gameState.PLAYING_TURN2
+    ) {
+      if (this.data[x][y].state === cellState.SHIP) {
+        this.data[x][y] = { state: cellState.AIM_SHIP, isPlaced: true };
+
+        console.log(this.checkIfLose());
+        if (this.checkIfLose()) {
+          this.player.game.end(!this.player.isFirst);
+        }
+
+        this.update();
+        this.hide();
+      } else if (this.data[x][y].state === cellState.EMPTY) {
+        this.data[x][y] = { state: cellState.AIM_MISS, isPlaced: false };
+        this.player.game.nextState();
+      }
+      console.log(this.data);
     }
   };
 
@@ -331,6 +385,7 @@ class Menu {
     for (const ship of ships) {
       const index = ships.indexOf(ship);
       const menuItem = this.container.children[index];
+
       if (ship.number === 0 && index === this.chosenId) {
         menuItem.className = 'menu-item disabled';
         this.chosenId = -1;
@@ -359,7 +414,6 @@ class Player {
     for (const ship of this.ships) {
       if (ship.number !== 0) return;
     }
-    console.log('OK');
 
     this.game.nextState();
   };
