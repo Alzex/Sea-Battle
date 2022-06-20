@@ -372,7 +372,7 @@ class Player {
 }
 
 class Game {
-  constructor(document, config) {
+  constructor(config) {
     this.state = gameState.POSITIONING_PLAYER1;
     this.player1 = new Player(this, config, 'player1Field');
     this.player2 = new Player(this, config, 'player2Field', false);
@@ -425,7 +425,7 @@ class Game {
   };
 }
 
-const game = new Game(document, CONFIG);
+const game = new Game(CONFIG);
 
 startButton.addEventListener('click', (e) => {
   game.start();
