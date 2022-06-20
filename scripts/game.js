@@ -30,59 +30,6 @@ const parsePositionFromCell = (cell) => {
   return { x: parsedX, y: parsedY };
 };
 
-class Game {
-  constructor(document, config) {
-    this.htmlDoc = document;
-    this.state = gameState.POSITIONING_PLAYER1;
-    this.player1 = new Player(this, config, 'player1Field');
-    this.player2 = new Player(this, config, 'player2Field', false);
-    this.shipRotationText = document.getElementById('shp-rot');
-    this.gameStateText = document.getElementById('game-state');
-  }
-
-  start = () => {
-    this.player1.init();
-    this.player2.init();
-  };
-
-  nextState = () => {
-    if (
-      this.state === gameState.POSITIONING_PLAYER1 ||
-      this.state === gameState.POSITIONING_PLAYER2
-    ) {
-      this.state++;
-    } else if (this.state !== gameState.END) {
-      this.state =
-        this.state === gameState.PLAYING_TURN1
-          ? gameState.PLAYING_TURN2
-          : gameState.PLAYING_TURN1;
-    }
-
-    if (this.state === gameState.POSITIONING_PLAYER2) {
-      this.player1.field.hide();
-      this.player2.menu.update(this.player2.ships);
-      this.gameStateText.innerText = 'Positioning (Player 2)';
-    } else if (this.state === gameState.PLAYING_TURN1) {
-      this.player2.field.hide();
-      this.player1.field.update();
-      document.getElementById('rotator')?.remove();
-      this.gameStateText.innerText = 'Playing (1st player turn)';
-    } else if (this.state === gameState.PLAYING_TURN2) {
-      this.player1.field.hide();
-      this.player2.field.update();
-      this.gameStateText.innerText = 'Playing (2nd player turn)';
-    }
-  };
-
-  end = (isFirst) => {
-    this.state = gameState.END;
-    this.gameStateText.innerText = isFirst ? 'First player won!' : 'Second player won!';
-    this.gameStateText.innerText += '\nPress F5 to restart';
-    this.player1.field.update();
-    this.player2.field.update();
-  }
-}
-
 class Field {
   constructor(cssClass, player, width = 9, height = 9) {
     this.width = width;
@@ -215,7 +162,7 @@ class Field {
       }
     }
     return true;
-  }
+  };
 
   processCellClick = (x, y) => {
     const gameStat = this.player.game.state;
@@ -236,8 +183,8 @@ class Field {
       }
       this.player.menu.update(this.player.ships, this.player.game.state);
     } else if (
-      gameStat === gameState.PLAYING_TURN1 && !this.player.isFirst ||
-      gameStat === gameState.PLAYING_TURN2 && this.player.isFirst
+      (gameStat === gameState.PLAYING_TURN1 && !this.player.isFirst) ||
+      (gameStat === gameState.PLAYING_TURN2 && this.player.isFirst)
     ) {
       if (this.data[x][y].state === cellState.SHIP) {
         this.data[x][y] = { state: cellState.AIM_SHIP, isPlaced: true };
@@ -421,6 +368,60 @@ class Player {
   init = () => {
     this.field.create();
     this.menu.create(this.ships);
+  };
+}
+
+class Game {
+  constructor(document, config) {
+    this.state = gameState.POSITIONING_PLAYER1;
+    this.player1 = new Player(this, config, 'player1Field');
+    this.player2 = new Player(this, config, 'player2Field', false);
+    this.shipRotationText = document.getElementById('shp-rot');
+    this.gameStateText = document.getElementById('game-state');
+  }
+
+  start = () => {
+    this.player1.init();
+    this.player2.init();
+  };
+
+  nextState = () => {
+    if (
+      this.state === gameState.POSITIONING_PLAYER1 ||
+      this.state === gameState.POSITIONING_PLAYER2
+    ) {
+      this.state++;
+    } else if (this.state !== gameState.END) {
+      this.state =
+        this.state === gameState.PLAYING_TURN1
+          ? gameState.PLAYING_TURN2
+          : gameState.PLAYING_TURN1;
+    }
+
+    if (this.state === gameState.POSITIONING_PLAYER2) {
+      this.player1.field.hide();
+      this.player2.menu.update(this.player2.ships);
+      this.gameStateText.innerText = 'Positioning (Player 2)';
+    } else if (this.state === gameState.PLAYING_TURN1) {
+      this.player2.field.hide();
+      this.player1.field.update();
+      document.getElementById('rotator')?.remove();
+      this.gameStateText.innerText = 'Playing (1st player turn)';
+    } else if (this.state === gameState.PLAYING_TURN2) {
+      this.player1.field.hide();
+      this.player2.field.update();
+      this.gameStateText.innerText = 'Playing (2nd player turn)';
+    }
+  };
+
+  end = (isFirst) => {
+    this.state = gameState.END;
+    this.gameStateText.innerText = isFirst
+      ? 'First player won!'
+      : 'Second player won!';
+    this.gameStateText.innerText += '\nPress F5 to restart';
+    this.player1.field.update();
+    this.player2.field.update();
   };
 }
 
