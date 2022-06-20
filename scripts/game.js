@@ -173,10 +173,6 @@ class Field {
       const chosenId = this.player.menu.chosenId;
       const ship = this.player.ships[chosenId];
 
-      const cell = this.gameTable.rows[x].cells[y];
-      cell.removeEventListener('mouseleave', this.processCellMouseLeave);
-      cell.removeEventListener('mouseenter', this.processCellMouseEnter);
-
       if (ship?.canBePlaced(this, x, y)) {
         ship.place(this, x, y);
         this.player.tryNextState();
