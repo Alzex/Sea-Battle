@@ -363,15 +363,6 @@ class Player {
 
     return result;
   };
-
-  isPlaying = () => {
-    const gameStat = this.game.state;
-    const result =
-      (gameStat === gameState.POSITIONING_PLAYER1 && this.isFirst) ||
-      (gameStat === gameState.POSITIONING_PLAYER2 && !this.isFirst);
-
-    return result;
-  };
 }
 
 class Game {
