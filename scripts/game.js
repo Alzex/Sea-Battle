@@ -41,16 +41,6 @@ class Field {
       isPlaced: false,
     });
     this.rotationContainer = document.getElementById('rotator');
-
-    this.check = {
-      isPlayerPositioning: (first = true) => {
-        const gameStat = this.player.game.state;
-
-        return (
-          gameStat === gameState.POSITIONING_PLAYER1 && this.player.isFirst
-        );
-      },
-    };
   }
 
   create = () => {
