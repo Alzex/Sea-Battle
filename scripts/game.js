@@ -60,9 +60,9 @@ class Field {
           this.processCellClick(position.x, position.y);
         });
 
-        cell.addEventListener('mouseenter', this.processCellMouseEnter);
+        cell.addEventListener('mouseenter', this.processCellMouse);
 
-        cell.addEventListener('mouseleave', this.processCellMouseLeave);
+        cell.addEventListener('mouseleave', this.processCellMouse);
 
         row.appendChild(cell);
       }
@@ -200,8 +200,10 @@ class Field {
     }
   };
 
-  processCellMouseEnter = (event) => {
+  processCellMouse = (event) => {
     const position = parsePositionFromCell(event.target);
+    const state =
+      event.type === 'mouseenter' ? cellState.SHIP : cellState.EMPTY;
 
     if (
       (this.player.game.state === gameState.POSITIONING_PLAYER1 &&
@@ -209,20 +211,7 @@ class Field {
       (this.player.game.state === gameState.POSITIONING_PLAYER2 &&
         !this.player.isFirst)
     ) {
-      this.renderShip(position.x, position.y, cellState.SHIP);
-    }
-  };
-
-  processCellMouseLeave = (event) => {
-    const position = parsePositionFromCell(event.target);
-
-    if (
-      (this.player.game.state === gameState.POSITIONING_PLAYER1 &&
-        this.player.isFirst) ||
-      (this.player.game.state === gameState.POSITIONING_PLAYER2 &&
-        !this.player.isFirst)
-    ) {
-      this.renderShip(position.x, position.y, cellState.EMPTY);
+      this.renderShip(position.x, position.y, state);
     }
   };
 }
