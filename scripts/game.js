@@ -41,6 +41,16 @@ class Field {
       isPlaced: false,
     });
     this.rotationContainer = document.getElementById('rotator');
+
+    this.check = {
+      isPlayerPositioning: (first = true) => {
+        const gameStat = this.player.game.state;
+
+        return (
+          gameStat === gameState.POSITIONING_PLAYER1 && this.player.isFirst
+        );
+      },
+    };
   }
 
   create = () => {
@@ -164,12 +174,26 @@ class Field {
     return true;
   };
 
+  aim = (x, y) => {
+    const cell = this.data[x][y];
+
+    if (cell.state === cellState.SHIP) {
+      cell = { state: cellState.AIM_SHIP, isPlaced: true };
+
+      if (this.checkIfLose()) {
+        this.player.game.end(!this.player.isFirst);
+      }
+
+      this.update();
+      this.hide();
+    } else if (cell.state === cellState.EMPTY) {
+      cell = { state: cellState.AIM_MISS, isPlaced: false };
+      this.player.game.nextState();
+    }
+  };
+
   processCellClick = (x, y) => {
-    const gameStat = this.player.game.state;
-    if (
-      (gameStat === gameState.POSITIONING_PLAYER1 && this.player.isFirst) ||
-      (gameStat === gameState.POSITIONING_PLAYER2 && !this.player.isFirst)
-    ) {
+    if (this.player.check(false)) {
       const chosenId = this.player.menu.chosenId;
       const ship = this.player.ships[chosenId];
 
@@ -178,39 +202,17 @@ class Field {
         this.player.tryNextState();
       }
       this.player.menu.update(this.player.ships, this.player.game.state);
-    } else if (
-      (gameStat === gameState.PLAYING_TURN1 && !this.player.isFirst) ||
-      (gameStat === gameState.PLAYING_TURN2 && this.player.isFirst)
-    ) {
-      if (this.data[x][y].state === cellState.SHIP) {
-        this.data[x][y] = { state: cellState.AIM_SHIP, isPlaced: true };
-
-        console.log(this.checkIfLose());
-        if (this.checkIfLose()) {
-          this.player.game.end(!this.player.isFirst);
-        }
-
-        this.update();
-        this.hide();
-      } else if (this.data[x][y].state === cellState.EMPTY) {
-        this.data[x][y] = { state: cellState.AIM_MISS, isPlaced: false };
-        this.player.game.nextState();
-      }
-      console.log(this.data);
+    } else if (this.player.check(true)) {
+      this.aim(x, y);
     }
   };
 
   processCellMouse = (event) => {
-    const position = parsePositionFromCell(event.target);
     const state =
       event.type === 'mouseenter' ? cellState.SHIP : cellState.EMPTY;
+    const position = parsePositionFromCell(event.target);
 
-    if (
-      (this.player.game.state === gameState.POSITIONING_PLAYER1 &&
-        this.player.isFirst) ||
-      (this.player.game.state === gameState.POSITIONING_PLAYER2 &&
-        !this.player.isFirst)
-    ) {
+    if (this.player.check(false)) {
       this.renderShip(position.x, position.y, state);
     }
   };
@@ -353,6 +355,32 @@ class Player {
   init = () => {
     this.field.create();
     this.menu.create(this.ships);
+  };
+
+  check = (playing = false) => {
+    const gameStat = this.game.state;
+    let firstPState = gameState.POSITIONING_PLAYER1;
+    let secondPState = gameState.POSITIONING_PLAYER2;
+
+    if (playing) {
+      firstPState = gameState.PLAYING_TURN1;
+      secondPState = gameState.PLAYING_TURN2;
+    }
+
+    const result =
+      (gameStat === firstPState && this.isFirst) ||
+      (gameStat === secondPState && !this.isFirst);
+
+    return result;
+  };
+
+  isPlaying = () => {
+    const gameStat = this.game.state;
+    const result =
+      (gameStat === gameState.POSITIONING_PLAYER1 && this.isFirst) ||
+      (gameStat === gameState.POSITIONING_PLAYER2 && !this.isFirst);
+
+    return result;
   };
 }
 
