@@ -165,7 +165,7 @@ class Field {
   };
 
   aim = (x, y) => {
-    const cell = this.data[x][y];
+    let cell = this.data[x][y];
 
     if (cell.state === cellState.SHIP) {
       cell = { state: cellState.AIM_SHIP, isPlaced: true };
@@ -173,13 +173,17 @@ class Field {
       if (this.checkIfLose()) {
         this.player.game.end(!this.player.isFirst);
       }
-
+      this.data[x][y] = cell;
       this.update();
       this.hide();
+
     } else if (cell.state === cellState.EMPTY) {
       cell = { state: cellState.AIM_MISS, isPlaced: false };
       this.player.game.nextState();
+      this.data[x][y] = cell;
+      this.update();
     }
+
   };
 
   processCellClick = (x, y) => {
@@ -351,15 +355,17 @@ class Player {
     const gameStat = this.game.state;
     let firstPState = gameState.POSITIONING_PLAYER1;
     let secondPState = gameState.POSITIONING_PLAYER2;
+    let first = this.isFirst;
 
     if (playing) {
       firstPState = gameState.PLAYING_TURN1;
       secondPState = gameState.PLAYING_TURN2;
+      first = !first;    
     }
 
     const result =
-      (gameStat === firstPState && this.isFirst) ||
-      (gameStat === secondPState && !this.isFirst);
+      (gameStat === firstPState && first) ||
+      (gameStat === secondPState && !first);
 
     return result;
   };
