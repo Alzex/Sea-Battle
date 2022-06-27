@@ -176,14 +176,12 @@ class Field {
       this.data[x][y] = cell;
       this.update();
       this.hide();
-
     } else if (cell.state === cellState.EMPTY) {
       cell = { state: cellState.AIM_MISS, isPlaced: false };
       this.player.game.nextState();
       this.data[x][y] = cell;
       this.update();
     }
-
   };
 
   processCellClick = (x, y) => {
@@ -360,7 +358,7 @@ class Player {
     if (playing) {
       firstPState = gameState.PLAYING_TURN1;
       secondPState = gameState.PLAYING_TURN2;
-      first = !first;    
+      first = !first;
     }
 
     const result =
@@ -385,11 +383,15 @@ class Game {
     this.player2.init();
   };
 
-  nextState = () => {
-    if (
+  isPositioning = () => {
+    return (
       this.state === gameState.POSITIONING_PLAYER1 ||
       this.state === gameState.POSITIONING_PLAYER2
-    ) {
+    );
+  };
+
+  nextState = () => {
+    if (this.isPositioning()) {
       this.state++;
     } else if (this.state !== gameState.END) {
       this.state =
